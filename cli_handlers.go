@@ -278,11 +278,14 @@ func run(c *cli.Context) error {
 	}
 
 	var cert acmev2.CertificateResource
-	var failures map[string]error
+	failures := make(map[string]error)
 
 	if hasDomains {
 		// obtain a certificate, generating a new private key
-		cert, failures = client.ObtainCertificate(c.GlobalStringSlice("domains"), !c.Bool("no-bundle"), nil, c.Bool("must-staple"))
+		var err error
+		cert, err = client.ObtainCertificate(c.GlobalStringSlice("domains"), !c.Bool("no-bundle"), nil, c.Bool("must-staple"))
+		// FIXME Dirty error management
+		failures["ObtainCertificate"] = err
 	} else {
 		// read the CSR
 		csr, err := readCSRFile(c.GlobalString("csr"))
@@ -291,7 +294,9 @@ func run(c *cli.Context) error {
 			failures = map[string]error{"csr": err}
 		} else {
 			// obtain a certificate for this CSR
-			cert, failures = client.ObtainCertificateForCSR(*csr, !c.Bool("no-bundle"))
+			cert, err = client.ObtainCertificateForCSR(*csr, !c.Bool("no-bundle"))
+			// FIXME Dirty error management
+			failures["ObtainCertificate"] = err
 		}
 	}
 
